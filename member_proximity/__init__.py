@@ -98,7 +98,7 @@ def generate_address_latlon(ward_directory_export, address_latlon_file):
             try:
                 location = geolocator.geocode(address)
             except GeocoderUnavailable:
-                location = get_census_address(address)
+                location = None
 
             if location is None:
                 location = get_census_address(address)
