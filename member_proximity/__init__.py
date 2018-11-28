@@ -23,7 +23,7 @@ def clean_address(problem_address):
     """
     # clean the Apartment info out
     gg = re.search(
-        r"(?:apt|apt\.|apartment|unit|unt|bldg\.|bldg|building|#)([\s#]+)?\w+\s",
+        r"\s(?:apt|apt\.|apartment|unit|unt|bldg\.|bldg|building|#)([\s#]+)?\w+\s",
         problem_address,
         re.IGNORECASE,
     )
