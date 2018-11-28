@@ -10,6 +10,9 @@ setup(
     author="Alan D. Snow",
     author_email="alansnow21@gmail.com",
     keywords=["geocode", "church", "ward", "members"],
-    install_requires=["requests", "pandas", "geopy"],
+    entry_points={
+        "console_scripts": ["member-proximity=member_proximity.cli:member_proximity"]
+    },
+    install_requires=["requests", "pandas", "geopy", "click"],
     extras_require={"dev": ["pytest", "black"]},
 )
