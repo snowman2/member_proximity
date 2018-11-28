@@ -1,6 +1,10 @@
 # member_proximity
 Find members of the church who are closest to an address based on ward directory.
 
+
+This uses the Nomatim geocoder credit “© OpenStreetMap contributors”.
+https://www.openstreetmap.org/copyright
+
 ## CLI Interface
 
 #### Step 1: Generate file with latitude and longitude for each address 

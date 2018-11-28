@@ -114,7 +114,9 @@ def generate_address_latlon(ward_directory_export, address_latlon_file):
                 latitude = location.latitude
                 longitude = location.longitude
             writer.writerow(household_row[:5] + [address, latitude, longitude])
-            time.sleep(0.5)
+            # maximum of 1 request per second
+            # https://operations.osmfoundation.org/policies/nominatim/
+            time.sleep(1)
 
 
 def generate_address_distance(input_address, address_latlon_file, output_distance_file):
