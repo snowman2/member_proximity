@@ -1,11 +1,17 @@
+from collections import namedtuple
 import csv
 import re
 import time
+import warnings
 
 from geopy.distance import geodesic
+from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Nominatim
 import pandas
 import requests
+
+
+Location = namedtuple("Location", ["latitude", "longitude"])
 
 
 def clean_address(problem_address):
@@ -36,7 +42,7 @@ def clean_address(problem_address):
     # clean the extra zip code out
     city_info_results = re.search(r"\w+,\s+\w+(\s+\d+)?", problem_address)
     if not city_info_results:
-        print("Error cleaning: {}".format(problem_address))
+        warnings.warn("Error cleaning: {}".format(problem_address))
         return problem_address
     city_info = city_info_results.group()
     fixed_address = problem_address.split(city_info)[0].strip() + " " + city_info
@@ -65,7 +71,7 @@ def get_census_address(input_address):
         geo_data = response.json()["result"]["addressMatches"][0]["coordinates"]
     except IndexError:
         return None
-    return {"latitude": geo_data["y"], "longitude": geo_data["x"]}
+    return Location(latitude=geo_data["y"], longitude=geo_data["x"])
 
 
 def generate_address_latlon(ward_directory_export, address_latlon_file):
@@ -89,18 +95,21 @@ def generate_address_latlon(ward_directory_export, address_latlon_file):
         writer.writerow(header[:5] + ["cleaned_address", "latitude", "longitude"])
         for household_row in reader:
             address = clean_address(household_row[4].strip())
-            location = geolocator.geocode(address)
+            try:
+                location = geolocator.geocode(address)
+            except GeocoderUnavailable:
+                location = get_census_address(address)
+
+            if location is None:
+                location = get_census_address(address)
+
             latitude = None
             longitude = None
             if location is None:
-                location = get_census_address(address)
                 if location is None:
-                    print(
+                    warnings.warn(
                         "Location not found: {}".format(household_row[:5] + [address])
                     )
-                else:
-                    latitude = location["latitude"]
-                    longitude = location["longitude"]
             else:
                 latitude = location.latitude
                 longitude = location.longitude
@@ -125,7 +134,10 @@ def generate_address_distance(input_address, address_latlon_file, output_distanc
     """
     address = clean_address(input_address.strip())
     geolocator = Nominatim(user_agent="find_closest_address")
-    location = geolocator.geocode(address)
+    try:
+        location = geolocator.geocode(address)
+    except GeocoderUnavailable:
+        location = get_census_address(address)
     if not location:
         raise RuntimeError("Address location not found.")
 
@@ -142,4 +154,3 @@ def generate_address_distance(input_address, address_latlon_file, output_distanc
     address_latlon_df["distance"] = address_latlon_df.apply(calc_distance, axis=1)
     address_latlon_df = address_latlon_df.sort_values(by="distance")
     address_latlon_df.to_csv(output_distance_file, index=False)
-    print(address_latlon_df.head(10))
