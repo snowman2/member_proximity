@@ -21,11 +21,7 @@ def clean_address(problem_address):
     str: The cleaned address.
 
     """
-    city_info_results = re.search(r"\w+,\s+\w+(\s+\d+)?", problem_address)
-    if not city_info_results:
-        print("Error cleaning: {}".format(problem_address))
-        return problem_address
-    city_info = city_info_results.group()
+    # clean the Apartment info out
     gg = re.search(
         r"(?:apt|apt\.|apartment|unit|bldg|building|#)([\s#]+)?\w+\s",
         problem_address,
@@ -33,9 +29,15 @@ def clean_address(problem_address):
     )
     if gg:
         gg = gg.group()
-        fixed_address = problem_address.split(gg)[0].strip() + " " + city_info
-    else:
-        fixed_address = problem_address.split(city_info)[0].strip() + " " + city_info
+        problem_address = " ".join([piece.strip().strip(',') for piece in problem_address.split(gg)])
+
+    # clean the extra zip code out
+    city_info_results = re.search(r"\w+,\s+\w+(\s+\d+)?", problem_address)
+    if not city_info_results:
+        print("Error cleaning: {}".format(problem_address))
+        return problem_address
+    city_info = city_info_results.group()
+    fixed_address = problem_address.split(city_info)[0].strip() + " " + city_info
     return fixed_address
 
 
