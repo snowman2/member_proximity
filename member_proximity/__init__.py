@@ -29,7 +29,9 @@ def clean_address(problem_address):
     )
     if gg:
         gg = gg.group()
-        problem_address = " ".join([piece.strip().strip(',') for piece in problem_address.split(gg)])
+        problem_address = " ".join(
+            [piece.strip().strip(",") for piece in problem_address.split(gg)]
+        )
 
     # clean the extra zip code out
     city_info_results = re.search(r"\w+,\s+\w+(\s+\d+)?", problem_address)
