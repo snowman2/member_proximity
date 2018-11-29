@@ -6,7 +6,7 @@ import click
 from member_proximity import generate_address_distance
 
 
-@click.group(name="member-proximity")
+@click.group(name="member-proximity", invoke_without_command=True)
 @click.argument("input_address", required=True)
 @click.argument("ward_directory_export", type=click.Path(exists=True), required=True)
 @click.argument("output_distance_file", type=click.Path(), required=True)
