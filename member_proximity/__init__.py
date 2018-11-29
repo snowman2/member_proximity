@@ -64,7 +64,8 @@ def get_census_address(input_address):
 
     """
     response = requests.get(
-        "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?benchmark=4&format=json",
+        "https://geocoding.geo.census.gov/geocoder/locations/"
+        "onelineaddress?benchmark=4&format=json",
         params={"address": input_address},
     )
     try:
@@ -74,52 +75,81 @@ def get_census_address(input_address):
     return Location(latitude=geo_data["y"], longitude=geo_data["x"])
 
 
-def generate_address_latlon(ward_directory_export, address_latlon_file):
+def get_location(address):
     """
-    Generate a file with latitude and longitudes for the address.
+    Return the location in latitude and longitude of the address.
+
+    Parameters
+    ----------
+    address: str
+        The address to find the location for.
+
+    Returns
+    -------
+    tuple(:obj:`Location`, str): The location of the address.
+
+    """
+    location = get_census_address(address)
+    try:
+        if location is None:
+            location = Nominatim(user_agent="member_proximity_py").geocode(address)
+    except GeocoderUnavailable:
+        pass
+    return location
+
+
+def generate_address_latlon(ward_directory_export, recalc=False):
+    """
+    Adds latitude and longitudes to the ward directory file.
 
     Parameters
     ----------
     ward_directory_export: str
         Path to the ward directory export csv file.
-    address_latlon_file: str
-        Output file to contain the member information
-        along with the lat/lon info for the address.
+    recalc: bool
+        If True, it will recalculate rows without locations.
 
     """
-    geolocator = Nominatim(user_agent="find_closest_address")
-    with open(ward_directory_export) as fileh, open(address_latlon_file, "w") as filew:
-        reader = csv.reader(fileh)
-        writer = csv.writer(filew)
-        header = next(reader)
-        writer.writerow(header[:5] + ["cleaned_address", "latitude", "longitude"])
-        for household_row in reader:
-            address = clean_address(household_row[4].strip())
-            try:
-                location = geolocator.geocode(address)
-            except GeocoderUnavailable:
-                location = None
+    ward_directory_df = pandas.read_csv(ward_directory_export)
 
-            if location is None:
-                location = get_census_address(address)
+    # make sure location columns added
+    location_columns = ("cleaned_address", "latitude", "longitude")
+    for location_column in location_columns:
+        if location_column not in ward_directory_df.columns:
+            ward_directory_df[location_column] = None
+            recalc = True
 
-            latitude = None
-            longitude = None
+    if not recalc:
+        return
+
+    def add_locations(in_row):
+        if pandas.isnull(in_row["cleaned_address"]):
+            in_row["cleaned_address"] = clean_address(in_row["Family Address"])
+
+        if pandas.isnull(in_row["latitude"]) or pandas.isnull(in_row["longitude"]):
+            location = get_location(in_row["cleaned_address"])
             if location is None:
                 if location is None:
                     warnings.warn(
-                        "Location not found: {}".format(household_row[:5] + [address])
+                        "Location not found: {}".format(
+                            [in_row["cleaned_address"], in_row["Family Address"]]
+                        )
                     )
             else:
-                latitude = location.latitude
-                longitude = location.longitude
-            writer.writerow(household_row[:5] + [address, latitude, longitude])
+                in_row["latitude"] = location.latitude
+                in_row["longitude"] = location.longitude
             # maximum of 1 request per second
             # https://operations.osmfoundation.org/policies/nominatim/
             time.sleep(1)
+        return in_row
+
+    ward_directory_df = ward_directory_df.apply(add_locations, axis=1)
+    ward_directory_df.to_csv(ward_directory_export)
 
 
-def generate_address_distance(input_address, address_latlon_file, output_distance_file):
+def generate_address_distance(
+    input_address, ward_directory_export, output_distance_file, recalc=False
+):
     """
     Creates a file of distances to the input address sorted with the closest at the top.
 
@@ -127,23 +157,35 @@ def generate_address_distance(input_address, address_latlon_file, output_distanc
     ----------
     input_address: str
         The address to use as a base to generate distances from.
-    address_latlon_file: str
-        Output file to contain the member information
-        along with the lat/lon info for the address.
+    ward_directory_export: str
+        Path to the ward directory export csv file.
     output_distance_file:  str
         Path to output csv file with distances to the original input_address.
+    recalc: bool
+        If True, it will recalculate rows without locations.
 
     """
-    address = clean_address(input_address.strip())
-    geolocator = Nominatim(user_agent="find_closest_address")
+    input_address = clean_address(input_address.strip())
+    generate_address_latlon(ward_directory_export, recalc)
+    address_latlon_df = pandas.read_csv(ward_directory_export)
+
+    # use calculated location if address already calculated
+    existing_addresses = address_latlon_df.loc[
+        address_latlon_df.cleaned_address == input_address
+    ]
+
     try:
-        location = geolocator.geocode(address)
-    except GeocoderUnavailable:
-        location = get_census_address(address)
+        existing_address = existing_addresses.iloc[0]
+        location = Location(
+            latitude=existing_address["latitude"],
+            longitude=existing_address["longitude"],
+        )
+    except IndexError:
+        # look up location if not found in addresses
+        location = get_location(input_address)
+
     if not location:
         raise RuntimeError("Address location not found.")
-
-    address_latlon_df = pandas.read_csv(address_latlon_file)
 
     def calc_distance(in_row):
         start = (location.latitude, location.longitude)
