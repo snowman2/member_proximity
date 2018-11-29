@@ -143,7 +143,7 @@ def generate_address_latlon(ward_directory_export, recalc=False):
         return in_row
 
     ward_directory_df = ward_directory_df.apply(add_locations, axis=1)
-    ward_directory_df.to_csv(ward_directory_export)
+    ward_directory_df.to_csv(ward_directory_export, index=False)
 
 
 def generate_address_distance(
