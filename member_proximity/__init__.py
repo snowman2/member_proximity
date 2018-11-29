@@ -95,6 +95,9 @@ def get_location(address):
             location = Nominatim(user_agent="member_proximity_py").geocode(address)
     except GeocoderUnavailable:
         pass
+    # maximum of 1 request per second
+    # https://operations.osmfoundation.org/policies/nominatim/
+    time.sleep(1)
     return location
 
 
@@ -138,9 +141,6 @@ def generate_address_latlon(ward_directory_export, recalc=False):
             else:
                 in_row["latitude"] = location.latitude
                 in_row["longitude"] = location.longitude
-            # maximum of 1 request per second
-            # https://operations.osmfoundation.org/policies/nominatim/
-            time.sleep(1)
         return in_row
 
     ward_directory_df = ward_directory_df.apply(add_locations, axis=1)
