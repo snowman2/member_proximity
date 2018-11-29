@@ -9,7 +9,8 @@ https://www.openstreetmap.org/copyright
 
 Generate distance file to the address of interest.
 
-Note: The first run may take a few minutes to run as it is looking up addresses. The next runs should be faster.
+The first run may take a few minutes to run as it is looking up addresses.
+The next runs should be faster as the results are cached in the file.
 
 
 ```bash
@@ -21,7 +22,8 @@ member-proximity "1234 Abc Dr City, Iowa 12345" 123456.csv 123456_distance.csv
 
 Generate distance file to the address of interest.
 
-Note: The first run may take a few minutes to run as it is looking up addresses. The next runs should be faster.
+The first run may take a few minutes to run as it is looking up addresses.
+The next runs should be faster as the results are cached in the file.
 
 ```python
 from member_proximity import generate_address_distance
