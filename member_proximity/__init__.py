@@ -1,5 +1,4 @@
 from collections import namedtuple
-import csv
 import re
 import time
 import warnings
