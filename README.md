@@ -1,6 +1,8 @@
 # member_proximity
 Find members of the church who are closest to an address based on ward directory.
 
+Before using this tool, you may want to check out Ward Maps: https://www.lds.org/maps/directory/.
+
 
 This uses the Nomatim geocoder credit “© OpenStreetMap contributors”.
 https://www.openstreetmap.org/copyright
